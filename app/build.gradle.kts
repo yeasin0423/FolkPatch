@@ -148,7 +148,9 @@ android {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
         buildConfigField("boolean", "DEBUG_FAKE_ROOT", localProperties.getProperty("debug.fake_root", "false"))
 
-        base.archivesName = "FolkPatch_${managerVersionCode}_${managerVersionName}_on_${branchName}"
+        // Branch names may contain '/' (e.g. fix/splash-...), which is illegal
+        // in an APK file name — sanitize to keep :app:processDebugManifest green.
+        base.archivesName = "FolkPatch_${managerVersionCode}_${managerVersionName}_on_${branchName.replace(Regex("[^A-Za-z0-9._-]+"), "-")}"
 
         ndk.abiFilters.addAll(arrayOf("arm64-v8a"))
         externalNativeBuild {
