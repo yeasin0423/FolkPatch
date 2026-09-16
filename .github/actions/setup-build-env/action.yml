@@ -11,7 +11,8 @@ runs:
 
     # NOTE: android-actions/setup-android@v3 was removed — its default
     # `sdkmanager tools` fails (the "tools" package no longer exists).
-    # Install exactly what build.gradle.kts / app/build.gradle.kts need.
+    # Install exactly what build.gradle.kts / app/build.gradle.kts need,
+    # skipping anything the runner image already ships.
     - name: Install Android SDK packages
       shell: bash
       run: |
@@ -20,12 +21,26 @@ runs:
         export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
         export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
         yes | sdkmanager --licenses > /dev/null || true
-        sdkmanager \
-          "platform-tools" \
-          "platforms;android-37" \
-          "build-tools;36.1.0" \
-          "ndk;30.0.15729638" \
-          "cmake;3.28.3"
+        echo "=== Preinstalled platforms ==="
+        ls "$ANDROID_HOME/platforms" || true
+        echo "=== Preinstalled build-tools ==="
+        ls "$ANDROID_HOME/build-tools" || true
+        install_pkg() { # $1 = sdkmanager path, $2 = local dir
+          if [ -e "$ANDROID_HOME/$2" ]; then
+            echo "present, skipping: $1"
+          else
+            sdkmanager "$1"
+          fi
+        }
+        install_pkg "platform-tools" "platform-tools"
+        install_pkg "build-tools;36.1.0" "build-tools/36.1.0"
+        install_pkg "ndk;30.0.15729638" "ndk/30.0.15729638"
+        install_pkg "cmake;3.28.3" "cmake/3.28.3"
+        if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+          sdkmanager "platforms;android-37" || sdkmanager --channel=1 "platforms;android-37"
+        else
+          echo "present, skipping: platforms;android-37"
+        fi
 
     - uses: gradle/actions/setup-gradle@v3
 
