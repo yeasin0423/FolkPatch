@@ -38,10 +38,10 @@ runs:
         # NOTE: the SDK repo carries no CMake >= 3.28, but the project needs
         # 3.28.0+ (AGP version + cmake_minimum_required). A Kitware CMake is
         # installed below and wired via the documented `cmake.dir` property.
-        if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
-          sdkmanager "platforms;android-37" || sdkmanager --channel=1 "platforms;android-37"
+        if ls -d "$ANDROID_HOME/platforms/android-37"* >/dev/null 2>&1; then
+          echo "present, skipping: platforms;android-37 ($(ls "$ANDROID_HOME/platforms" | grep '^android-37' | tr '\n' ' '))"
         else
-          echo "present, skipping: platforms;android-37"
+          sdkmanager "platforms;android-37" || sdkmanager --channel=1 "platforms;android-37"
         fi
 
     - uses: actions/cache@v4
