@@ -35,11 +35,36 @@ runs:
         install_pkg "platform-tools" "platform-tools"
         install_pkg "build-tools;36.1.0" "build-tools/36.1.0"
         install_pkg "ndk;30.0.15729638" "ndk/30.0.15729638"
-        install_pkg "cmake;3.28.3" "cmake/3.28.3"
+        # NOTE: the SDK repo carries no CMake >= 3.28, but the project needs
+        # 3.28.0+ (AGP version + cmake_minimum_required). A Kitware CMake is
+        # installed below and wired via the documented `cmake.dir` property.
         if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
           sdkmanager "platforms;android-37" || sdkmanager --channel=1 "platforms;android-37"
         else
           echo "present, skipping: platforms;android-37"
+        fi
+
+    - uses: actions/cache@v4
+      with:
+        path: ~/cmake
+        key: ${{ runner.os }}-cmake-3.28.3
+        restore-keys: ${{ runner.os }}-cmake-
+
+    - name: Install CMake 3.28.3 (Kitware)
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -x "$HOME/cmake/bin/cmake" ]; then
+          curl -sfL -o /tmp/cmake.tgz \
+            "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz"
+          mkdir -p "$HOME/cmake"
+          tar -xzf /tmp/cmake.tgz -C "$HOME/cmake" --strip-components=1
+          rm -f /tmp/cmake.tgz
+        fi
+        "$HOME/cmake/bin/cmake" --version
+        mkdir -p ~/.gradle
+        if ! grep -q "^cmake.dir=" ~/.gradle/gradle.properties 2>/dev/null; then
+          echo "cmake.dir=$HOME/cmake" >> ~/.gradle/gradle.properties
         fi
 
     - uses: gradle/actions/setup-gradle@v3
